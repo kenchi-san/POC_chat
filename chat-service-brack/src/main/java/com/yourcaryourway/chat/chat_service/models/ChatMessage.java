@@ -1,19 +1,14 @@
 package com.yourcaryourway.chat.chat_service.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// Assure-toi que ces imports correspondent à tes propres modèles
-
-
 @Entity
-@NoArgsConstructor
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "messages")
 public class ChatMessage {
