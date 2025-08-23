@@ -1,7 +1,7 @@
 package com.yourcaryourway.chat.chat_service.services;
 
-import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequest;
-import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponse;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
 import com.yourcaryourway.chat.chat_service.models.ChatMessage;
 import com.yourcaryourway.chat.chat_service.models.Conversation;
 import com.yourcaryourway.chat.chat_service.models.User;
@@ -41,7 +41,7 @@ public class MessageService {
     }
 
     @Transactional
-    public MessageResponse createAndBroadcast(MessageRequest req) {
+    public MessageResponseDto createAndBroadcast(MessageRequestDto req) {
         Conversation conv = conversationRepo.findById(req.getConversationId())
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
@@ -56,7 +56,7 @@ public class MessageService {
 
         OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
 
-        MessageResponse dto = new MessageResponse(
+        MessageResponseDto dto = new MessageResponseDto(
                 message.getId(),
                 conv.getId(),
                 sender.getId(),
@@ -74,7 +74,7 @@ public class MessageService {
     }
 
     @Transactional
-    public List<MessageResponse> getHistory(UUID conversationId, LocalDateTime after, int limit) {
+    public List<MessageResponseDto> getHistory(UUID conversationId, LocalDateTime after, int limit) {
         Conversation conv = conversationRepo.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
@@ -90,7 +90,7 @@ public class MessageService {
         }
 
         return messages.stream()
-                .map(m -> new MessageResponse(
+                .map(m -> new MessageResponseDto(
                         m.getId(),
                         conv.getId(),
                         m.getSender().getId(),

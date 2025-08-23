@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class MessageRequest {
+public class MessageRequestDto {
     // Getters / Setters
     private UUID conversationId;
     private UUID senderId;

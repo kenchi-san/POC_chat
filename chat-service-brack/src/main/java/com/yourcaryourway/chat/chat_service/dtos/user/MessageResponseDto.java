@@ -6,7 +6,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
-public class MessageResponse {
+public class MessageResponseDto {
     // Getters
     private final UUID id;
     private final UUID conversationId;
@@ -14,7 +14,7 @@ public class MessageResponse {
     private final String content;
     private final OffsetDateTime createdAt;
 
-    public MessageResponse(UUID id, UUID conversationId, UUID senderId, String content, OffsetDateTime createdAt) {
+    public MessageResponseDto(UUID id, UUID conversationId, UUID senderId, String content, OffsetDateTime createdAt) {
         this.id = id;
         this.conversationId = conversationId;
         this.senderId = senderId;

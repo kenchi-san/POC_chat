@@ -1,7 +1,7 @@
 package com.yourcaryourway.chat.chat_service.controllers;
 
-import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequest;
-import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponse;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
 import com.yourcaryourway.chat.chat_service.services.MessageService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -21,18 +21,18 @@ public class MessageController {
     }
 
     @PostMapping("/messages")
-    public ResponseEntity<MessageResponse> post(@RequestBody MessageRequest req) {
+    public ResponseEntity<MessageResponseDto> post(@RequestBody MessageRequestDto req) {
         return ResponseEntity.ok(messageService.createAndBroadcast(req));
     }
 
     @GetMapping("/messages")
-    public ResponseEntity<List<MessageResponse>> history(
+    public ResponseEntity<List<MessageResponseDto>> history(
             @RequestParam UUID conversationId,
             @RequestParam(required = false) String after,
             @RequestParam(defaultValue = "50") int limit) {
 
         LocalDateTime afterDate = after != null ? LocalDateTime.parse(after) : null;
-        List<MessageResponse> messages = messageService.getHistory(conversationId, afterDate, limit);
+        List<MessageResponseDto> messages = messageService.getHistory(conversationId, afterDate, limit);
         return ResponseEntity.ok(messages);
     }
 }
