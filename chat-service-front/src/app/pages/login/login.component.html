@@ -1,0 +1,30 @@
+<div class="login-container">
+  <mat-card>
+    <h2>Connexion</h2>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" />
+        <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+          Email obligatoire
+        </mat-error>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+          Email invalide
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input matInput formControlName="password" type="password" />
+        <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+          Mot de passe obligatoire
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="loading || loginForm.invalid">
+        {{ loading ? 'Connexion...' : 'Se connecter' }}
+      </button>
+    </form>
+  </mat-card>
+</div>
