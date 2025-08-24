@@ -49,13 +49,14 @@ export class LoginComponent implements OnInit {
     if (this.loginForm.invalid) return;
     this.loading = true;
 
-    const loginData: LoginInfo = this.loginForm.value; // Typage explicite
+    const loginData: LoginInfo = this.loginForm.value;
 
     this.authService.login(loginData.email, loginData.password!).subscribe({
       next: () => {
         this.loading = false;
         this.snack.open('Connexion réussie ✅', 'Fermer', { duration: 2000 });
-        this.router.navigate(['chat-service']);
+
+        this.router.navigate(['/chat-service']);
       },
       error: () => {
         this.loading = false;
