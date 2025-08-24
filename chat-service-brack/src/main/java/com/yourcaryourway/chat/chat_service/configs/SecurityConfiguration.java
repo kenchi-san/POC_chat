@@ -40,10 +40,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers("/auth/login").permitAll()
-//                                .requestMatchers("/api/messages").permitAll()
-//                                .anyRequest().authenticated()
-                                .anyRequest().permitAll()
-//TODO travailler les sessions
+                                .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

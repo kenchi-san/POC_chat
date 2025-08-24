@@ -3,6 +3,7 @@ package com.yourcaryourway.chat.chat_service.models;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -38,6 +39,7 @@ public class User implements UserDetails {
     }
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        // ⚡ Mappe le champ role en authority Spring Security
+        return List.of(new SimpleGrantedAuthority(this.role));
     }
 }
