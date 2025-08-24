@@ -14,7 +14,6 @@ import {LoginInfo} from '../../interfaces/me';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,

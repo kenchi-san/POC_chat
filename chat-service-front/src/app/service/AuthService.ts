@@ -2,6 +2,7 @@ import {Observable, tap} from 'rxjs';
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import * as jwt_decode from 'jwt-decode'; // import namespace
+import { jwtDecode } from "jwt-decode";
 
 const API_URL = 'http://localhost:8081';
 
@@ -35,7 +36,13 @@ export class AuthService {
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
-
+  decodeToken(token: string): any {
+    try {
+      return jwtDecode(token);
+    } catch {
+      return null;
+    }
+  }
   isAuthenticated(): boolean {
     const token = this.getToken();
     if (!token) return false;
