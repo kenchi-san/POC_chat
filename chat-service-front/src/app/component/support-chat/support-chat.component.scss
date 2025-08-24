@@ -1,0 +1,30 @@
+/* support-chat.component.scss */
+.support-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ticket-column {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.messages {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.message {
+  padding: 4px 0;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
