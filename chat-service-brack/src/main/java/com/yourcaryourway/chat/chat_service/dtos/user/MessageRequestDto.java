@@ -11,6 +11,6 @@ import java.util.UUID;
 public class MessageRequestDto {
     // Getters / Setters
     private UUID conversationId;
-    private UUID senderId;
+    private String senderEmail;
     private String content;
 }

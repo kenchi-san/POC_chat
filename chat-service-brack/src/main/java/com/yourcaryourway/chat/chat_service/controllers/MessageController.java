@@ -24,6 +24,7 @@ public class MessageController {
 
     @PostMapping("/messages")
     public ResponseEntity<MessageResponseDto> post(@RequestBody MessageRequestDto req) {
+
         return ResponseEntity.ok(messageService.createAndBroadcast(req));
     }
 

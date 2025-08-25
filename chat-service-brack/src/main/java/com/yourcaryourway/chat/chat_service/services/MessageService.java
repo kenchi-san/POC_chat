@@ -42,17 +42,17 @@ public class MessageService {
         this.redis = redis;
     }
 
-    @Transactional
     public MessageResponseDto createAndBroadcast(MessageRequestDto req) {
         Conversation conv = conversationRepo.findById(req.getConversationId())
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-        User sender = userRepo.findById(req.getSenderId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        System.out.println("info_utilisateur:"+conv.getUser().getFullName());
+//        User sender = userRepo.findByEmail(req.getSenderEmail())
+//                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         ChatMessage message = new ChatMessage();
         message.setConversation(conv);
-        message.setSender(sender);
+        message.setSender(conv.getUser());
         message.setContent(req.getContent());
         message = messageRepo.save(message);
 
@@ -60,9 +60,9 @@ public class MessageService {
 
         MessageResponseDto dto = new MessageResponseDto(
                 message.getId(),
-                sender.getFullName(),
+                conv.getUser().getFullName(),
                 conv.getId(),
-                sender.getId(),
+                conv.getUser().getId(),
                 message.getContent(),
                 createdAt
         );
@@ -76,11 +76,11 @@ public class MessageService {
         return dto;
     }
 
+
     @Transactional
     public List<MessageResponseDto> getActiveMessagesForUser(String username) {
         User user = userRepo.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
-System.out.println("info_utilisateur:"+user);
         UUID userId = user.getId();
         List<ChatMessage> messages = messageRepo.findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(userId);
         return messages.stream()

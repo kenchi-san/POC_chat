@@ -61,7 +61,7 @@ export class AuthService {
     const token = this.getToken();
     if (!token) return null;
     try {
-      return jwtDecode(token); // renvoie toutes les infos du payload
+      return jwtDecode(token);
     } catch (e) {
       console.error('Token invalide', e);
       return null;

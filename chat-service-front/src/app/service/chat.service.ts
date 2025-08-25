@@ -13,8 +13,7 @@ export class ChatService {
   constructor(private http: HttpClient) {}
 
   getMessagesForUser(): Observable<Message[]> {
-    const token = localStorage.getItem('auth_token'); // récupère ton JWT stocké après login
-console.log('mon token'+token);
+    const token = localStorage.getItem('auth_token');
     return this.http.get<Message[]>(`${this.apiUrl}`, {
       headers: new HttpHeaders({
         Authorization: `Bearer ${token}`
@@ -23,13 +22,17 @@ console.log('mon token'+token);
   }
 
 
-
-  // 🔹 POST : Envoyer un message
-  sendMessage(conversationId: string, senderId: string, content: string): Observable<Message> {
+  sendMessage(conversationId: string, userEmail: string, content: string): Observable<Message> {
+    const token = localStorage.getItem('auth_token');
     return this.http.post<Message>(
       this.apiUrl,
-      { conversationId, senderId, content },
-      { withCredentials: true }
+      { conversationId, userEmail, content },
+      {
+        headers: new HttpHeaders({
+          Authorization: `Bearer ${token}`
+        })
+      }
     );
   }
+
 }

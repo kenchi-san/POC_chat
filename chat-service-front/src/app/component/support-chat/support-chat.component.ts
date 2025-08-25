@@ -52,6 +52,7 @@ export class SupportChatComponent implements OnInit {
         // Adapte la réponse API (createdAt) à ton modèle front (timestamp)
         const uiMsg: Message = {
           senderId: resp.senderId,
+          conversationId:resp.conversationId,
           username: resp.username,
           content: resp.content,
           timestamp: resp.createdAt ? new Date(resp.createdAt) : new Date()

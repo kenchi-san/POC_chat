@@ -25,9 +25,10 @@ import { AuthService } from '../../service/AuthService';
   styleUrls: ['./client-chat.component.scss']
 })
 export class ClientChatComponent implements OnInit {
-  userId: string | null = null;   // sera utilisé comme conversationId
+  userId: string | null = null;
   messages: Message[] = [];
   newMessage = '';
+  conversationId: string | null = null;
 
   constructor(
     private chatService: ChatService,
@@ -36,14 +37,10 @@ export class ClientChatComponent implements OnInit {
 
   ngOnInit(): void {
     this.userId = this.authService.getUserIdFromToken(); // récupère directement depuis le JWT
-     let info_token =this.authService.getDecodedToken();
-    console.log(info_token);
     if (!this.userId) {
       console.error('Utilisateur non authentifié ou token invalide');
       return;
     }
-
-    // ici userId == conversationId
     this.loadMessages();
   }
 
@@ -51,16 +48,24 @@ export class ClientChatComponent implements OnInit {
     if (!this.userId) return;
 
     this.chatService.getMessagesForUser().subscribe({
-      next: (msgs) => (this.messages = msgs),
+      next: (msgs) => {
+        this.messages = msgs;
+        if (msgs.length > 0) {
+          this.conversationId = msgs[0].conversationId;
+        }
+      },
       error: (err) => console.error('Erreur récupération messages', err),
     });
   }
 
+
   sendMessage(): void {
-    if (!this.newMessage.trim() || !this.userId) return;
+    console.log(this.conversationId, this.userId, this.newMessage);
+
+    if (!this.newMessage.trim() || !this.userId || !this.conversationId) return;
 
     this.chatService
-      .sendMessage(this.userId, this.userId, this.newMessage) // ✅ conversationId = userId
+      .sendMessage(this.conversationId, this.userId, this.newMessage)
       .subscribe({
         next: (msg: Message) => {
           this.messages.push(msg);
@@ -70,6 +75,7 @@ export class ClientChatComponent implements OnInit {
         error: (err) => console.error('Erreur envoi message', err),
       });
   }
+
 
   scrollToBottom(): void {
     setTimeout(() => {
