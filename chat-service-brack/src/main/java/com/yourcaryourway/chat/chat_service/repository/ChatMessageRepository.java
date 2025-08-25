@@ -11,9 +11,5 @@ import java.util.UUID;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
-
-    List<ChatMessage> findByConversationAndCreatedAtAfterOrderByCreatedAtAsc(
-            Conversation conversation, LocalDateTime after);
-
-    List<ChatMessage> findTop50ByConversationOrderByCreatedAtAsc(Conversation conversation);
+    List<ChatMessage> findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(UUID userId);
 }

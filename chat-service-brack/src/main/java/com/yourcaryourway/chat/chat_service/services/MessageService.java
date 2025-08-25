@@ -9,15 +9,17 @@ import com.yourcaryourway.chat.chat_service.repository.ChatMessageRepository;
 import com.yourcaryourway.chat.chat_service.repository.ConversationRepository;
 import com.yourcaryourway.chat.chat_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
@@ -58,6 +60,7 @@ public class MessageService {
 
         MessageResponseDto dto = new MessageResponseDto(
                 message.getId(),
+                sender.getFullName(),
                 conv.getId(),
                 sender.getId(),
                 message.getContent(),
@@ -74,29 +77,22 @@ public class MessageService {
     }
 
     @Transactional
-    public List<MessageResponseDto> getHistory(UUID conversationId, LocalDateTime after, int limit) {
-        Conversation conv = conversationRepo.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-
-        List<ChatMessage> messages;
-        if (after != null) {
-            messages = messageRepo.findByConversationAndCreatedAtAfterOrderByCreatedAtAsc(conv, after);
-        } else {
-            messages = messageRepo.findTop50ByConversationOrderByCreatedAtAsc(conv);
-        }
-
-        if (messages.size() > limit) {
-            messages = messages.subList(0, limit);
-        }
-
+    public List<MessageResponseDto> getActiveMessagesForUser(String username) {
+        User user = userRepo.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
+System.out.println("info_utilisateur:"+user);
+        UUID userId = user.getId();
+        List<ChatMessage> messages = messageRepo.findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(userId);
         return messages.stream()
                 .map(m -> new MessageResponseDto(
                         m.getId(),
-                        conv.getId(),
+                        m.getSender().getFullName(),
+                        m.getConversation().getId(),
                         m.getSender().getId(),
                         m.getContent(),
                         m.getCreatedAt().atOffset(ZoneOffset.UTC)
                 ))
-                .toList();
+                .collect(Collectors.toList());
     }
+
 }

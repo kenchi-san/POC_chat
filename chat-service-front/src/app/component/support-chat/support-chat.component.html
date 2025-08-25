@@ -1,6 +1,4 @@
-<!-- support-chat.component.html -->
 <div class="support-table">
-  <!-- Colonne tickets ouverts -->
   <div class="ticket-column">
     <h3>Tickets ouverts</h3>
     <mat-accordion>
@@ -19,7 +17,7 @@
 
         <div class="conversation-actions">
           <input [(ngModel)]="convo.newMessage" placeholder="Répondre..." />
-          <button mat-raised-button color="primary" (click)="sendMessage(convo, convo.newMessage); convo.newMessage=''">
+          <button mat-raised-button color="primary" (click)="sendMessage(convo)">
             Envoyer
           </button>
           <button mat-raised-button color="accent" (click)="resolveConversation(convo)">
@@ -30,7 +28,6 @@
     </mat-accordion>
   </div>
 
-  <!-- Colonne tickets fermés -->
   <div class="ticket-column">
     <h3>Tickets fermés</h3>
     <mat-accordion>

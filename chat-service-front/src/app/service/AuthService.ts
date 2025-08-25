@@ -48,4 +48,23 @@ export class AuthService {
     if (!token) return false;
     else return true
   }
+  getUserIdFromToken(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const decoded: any = this.decodeToken(token);
+    return decoded?.sub || decoded?.id || null;
+  }
+
+
+  getDecodedToken(): any {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      return jwtDecode(token); // renvoie toutes les infos du payload
+    } catch (e) {
+      console.error('Token invalide', e);
+      return null;
+    }
+  }
 }

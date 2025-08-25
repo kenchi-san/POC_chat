@@ -3,6 +3,7 @@ package com.yourcaryourway.chat.chat_service.dtos.user;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Date;
 import java.util.UUID;
 
 @Setter
@@ -12,5 +13,4 @@ public class MessageRequestDto {
     private UUID conversationId;
     private UUID senderId;
     private String content;
-
 }
