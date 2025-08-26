@@ -2,6 +2,7 @@ package com.yourcaryourway.chat.chat_service.services;
 
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseSupportDto;
 import com.yourcaryourway.chat.chat_service.models.ChatMessage;
 import com.yourcaryourway.chat.chat_service.models.Conversation;
 import com.yourcaryourway.chat.chat_service.models.User;
@@ -45,10 +46,6 @@ public class MessageService {
     public MessageResponseDto createAndBroadcast(MessageRequestDto req) {
         Conversation conv = conversationRepo.findById(req.getConversationId())
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-
-        System.out.println("info_utilisateur:"+conv.getUser().getFullName());
-//        User sender = userRepo.findByEmail(req.getSenderEmail())
-//                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         ChatMessage message = new ChatMessage();
         message.setConversation(conv);
@@ -94,5 +91,24 @@ public class MessageService {
                 ))
                 .collect(Collectors.toList());
     }
+
+    public List<MessageResponseSupportDto> getAllMessagesForSupport() {
+        List<ChatMessage> messages = messageRepo.findByConversationStatusTrueOrderByConversationIdAscCreatedAtAsc();
+
+        return messages.stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    private MessageResponseSupportDto toDto(ChatMessage message) {
+        return new MessageResponseSupportDto(
+                message.getId(),
+                message.getConversation().getId(),
+                message.getSender().getId(),
+                message.getContent(),
+                message.getCreatedAt().atOffset(ZoneOffset.UTC) // conversion LocalDateTime -> OffsetDateTime
+        );
+    }
+
 
 }

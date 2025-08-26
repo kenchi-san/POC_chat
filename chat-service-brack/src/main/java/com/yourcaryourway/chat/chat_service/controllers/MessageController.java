@@ -2,6 +2,7 @@ package com.yourcaryourway.chat.chat_service.controllers;
 
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseSupportDto;
 import com.yourcaryourway.chat.chat_service.services.MessageService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,6 +33,11 @@ public class MessageController {
     public ResponseEntity<List<MessageResponseDto>> history(@AuthenticationPrincipal UserDetails userDetails) {
         String username = userDetails.getUsername();
         List<MessageResponseDto> messages = messageService.getActiveMessagesForUser(username);
+        return ResponseEntity.ok(messages);
+    }
+    @GetMapping("/support/message")
+    public ResponseEntity<List<MessageResponseSupportDto>> supportMessage() {
+        List<MessageResponseSupportDto> messages = messageService.getAllMessagesForSupport();
         return ResponseEntity.ok(messages);
     }
 }

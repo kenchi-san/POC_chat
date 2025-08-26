@@ -8,20 +8,18 @@ import {environment} from '../../environments/environment';
   providedIn: 'root'
 })
 export class ChatService {
-  private apiUrl = `${environment.apiUrl}/api/messages`;
+  private apiUrl = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) {}
 
   getMessagesForUser(): Observable<Message[]> {
     const token = localStorage.getItem('auth_token');
-    return this.http.get<Message[]>(`${this.apiUrl}`, {
+    return this.http.get<Message[]>(`${this.apiUrl}/messages`, {
       headers: new HttpHeaders({
         Authorization: `Bearer ${token}`
       })
     });
   }
-
-
   sendMessage(conversationId: string, userEmail: string, content: string): Observable<Message> {
     const token = localStorage.getItem('auth_token');
     return this.http.post<Message>(
@@ -35,4 +33,12 @@ export class ChatService {
     );
   }
 
+  getSupportMessages(): Observable<Message[]> {
+    const token = localStorage.getItem('auth_token');
+    return this.http.get<Message[]>(`${this.apiUrl}/support/message`, {
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`
+      })
+    });
+  }
 }
