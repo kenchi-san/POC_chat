@@ -78,7 +78,14 @@ export class SupportChatComponent implements OnInit {
       return;
     }
 
-    this.chatService.sendMessage(convo.id, this.userId, text).subscribe({
+    // 👇 Log des données envoyées
+    console.log('Envoi au backend:', {
+      conversationId: convo.id,
+      userId: this.userId,
+      content: text
+    });
+
+    this.chatService.sendMessageFromSupport(convo.id, this.userId, text).subscribe({
       next: (resp: any) => {
         const uiMsg: Messages_support = {
           senderId: resp.senderId,

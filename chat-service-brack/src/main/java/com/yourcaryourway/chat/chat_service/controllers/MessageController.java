@@ -25,7 +25,6 @@ public class MessageController {
 
     @PostMapping("/messages")
     public ResponseEntity<MessageResponseDto> post(@RequestBody MessageRequestDto req) {
-
         return ResponseEntity.ok(messageService.createAndBroadcast(req));
     }
 
@@ -40,4 +39,10 @@ public class MessageController {
         List<MessageResponseSupportDto> messages = messageService.getAllMessagesForSupport();
         return ResponseEntity.ok(messages);
     }
+    @PostMapping("/support/message")
+    public ResponseEntity<MessageResponseSupportDto> supportMessage(@RequestBody MessageRequestDto req) {
+        MessageResponseSupportDto dto = messageService.createAndBroadcastSupport(req);
+        return ResponseEntity.ok(dto);
+    }
+
 }

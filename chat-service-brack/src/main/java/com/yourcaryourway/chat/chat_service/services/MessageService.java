@@ -12,6 +12,7 @@ import com.yourcaryourway.chat.chat_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -109,6 +110,49 @@ public class MessageService {
                 message.getContent(),
                 message.getCreatedAt().atOffset(ZoneOffset.UTC) // conversion LocalDateTime -> OffsetDateTime
         );
+    }
+
+
+    public MessageResponseSupportDto createAndBroadcastSupport(MessageRequestDto req) {
+        // 1️⃣ Récupérer l’utilisateur réel à partir de l’email envoyé par le front
+        User sender = userRepo.findByEmail(req.getSenderEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Utilisateur non trouvé : " + req.getSenderEmail()));
+
+        // 2️⃣ Récupérer la conversation existante
+        Conversation conv = conversationRepo.findById(req.getConversationId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Conversation non trouvée : " + req.getConversationId()));
+
+        System.out.println("Utilisateur envoyé : " + sender + " | Conversation : " + conv);
+
+        // 3️⃣ Créer et sauvegarder le message
+        ChatMessage message = new ChatMessage();
+        message.setConversation(conv);
+        message.setSender(sender); // Le vrai utilisateur
+        message.setContent(req.getContent());
+        message = messageRepo.save(message);
+
+        // 4️⃣ Conversion du timestamp
+        OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
+
+        // 5️⃣ Créer le DTO pour le front
+        MessageResponseSupportDto dto = new MessageResponseSupportDto(
+                message.getId(),
+                sender.getFullName(),
+                conv.getId(),
+                sender.getId(),
+                message.getContent(),
+                createdAt
+        );
+
+        // 6️⃣ Diffusion WebSocket
+        broker.convertAndSend("/topic/conversations/" + conv.getId(), dto);
+
+        // 7️⃣ Incrémenter le compteur Redis
+        redis.opsForValue().increment("conv:" + conv.getId() + ":count");
+
+        return dto;
     }
 
 
