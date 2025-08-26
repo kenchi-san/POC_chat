@@ -23,7 +23,7 @@ export class ChatService {
   sendMessage(conversationId: string, userEmail: string, content: string): Observable<Message> {
     const token = localStorage.getItem('auth_token');
     return this.http.post<Message>(
-      this.apiUrl,
+      `${this.apiUrl}/messages`, // <-- backticks autour de toute l'URL
       { conversationId, userEmail, content },
       {
         headers: new HttpHeaders({
@@ -32,6 +32,7 @@ export class ChatService {
       }
     );
   }
+
 
   getSupportMessages(): Observable<Message[]> {
     const token = localStorage.getItem('auth_token');

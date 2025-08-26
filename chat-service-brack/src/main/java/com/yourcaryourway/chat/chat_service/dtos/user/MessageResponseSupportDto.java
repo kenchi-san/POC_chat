@@ -8,13 +8,15 @@ import lombok.Getter;
 public class MessageResponseSupportDto {
     // Getters
     private final UUID id;
+    private final String fullName;
     private final UUID conversationId;
     private final UUID senderId;
     private final String content;
     private final OffsetDateTime createdAt;
 
-    public MessageResponseSupportDto(UUID id, UUID conversationId, UUID senderId, String content, OffsetDateTime createdAt) {
+    public MessageResponseSupportDto(UUID id, String fullName, UUID conversationId, UUID senderId, String content, OffsetDateTime createdAt) {
         this.id = id;
+        this.fullName = fullName;
         this.conversationId = conversationId;
         this.senderId = senderId;
         this.content = content;

@@ -103,6 +103,7 @@ public class MessageService {
     private MessageResponseSupportDto toDto(ChatMessage message) {
         return new MessageResponseSupportDto(
                 message.getId(),
+                message.getSender().getFullName(),
                 message.getConversation().getId(),
                 message.getSender().getId(),
                 message.getContent(),

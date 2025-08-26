@@ -7,7 +7,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { Conversation } from '../../interfaces/conversation';
 import { ChatService } from '../../service/chat.service';
 import { AuthService } from '../../service/AuthService';
-import { Message } from '../../interfaces/message';
+import { Messages_support } from '../../interfaces/messages_support';
 
 @Component({
   selector: 'app-support-chat',
@@ -33,7 +33,7 @@ export class SupportChatComponent implements OnInit {
       return;
     }
 
-    // Appel backend pour charger les messages
+    // Charger toutes les conversations et messages
     this.chatService.getSupportMessages().subscribe({
       next: (msgs: any[]) => {
         // 1️⃣ Grouper par conversationId
@@ -43,29 +43,32 @@ export class SupportChatComponent implements OnInit {
           if (!convoMap[msg.conversationId]) {
             convoMap[msg.conversationId] = {
               id: msg.conversationId,
-              user: msg.username, // tu peux remplacer par user.email si backend l’envoie
-              createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+              user: msg.fullName, // affichage dans le titre
+              createdAt: msg.timestamp ? new Date(msg.timestamp) : new Date(),
               messages: [],
               expanded: false
             };
           }
 
+          // Ajouter le message dans la conversation
           convoMap[msg.conversationId].messages.push({
             senderId: msg.senderId,
             username: msg.username,
+            fullName: msg.fullName,
             conversationId: msg.conversationId,
             content: msg.content,
-            timestamp: msg.createdAt ? new Date(msg.createdAt) : new Date()
-          });
+            timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
+          } as Messages_support);
         });
 
-        // 2️⃣ Séparer les conversations ouvertes / fermées (si backend envoie un statut)
-        this.openConversations = Object.values(convoMap).filter(c => true );
-        this.closedConversations = Object.values(convoMap).filter(c => false );
+        // Séparer ouvert / fermé si statut existe
+        this.openConversations = Object.values(convoMap).filter(c => true); // pour l'instant tout ouvert
+        this.closedConversations = Object.values(convoMap).filter(c => false); // rien pour l'instant
       },
       error: err => console.error('Erreur récupération messages', err)
     });
   }
+
   sendMessage(convo: Conversation) {
     const text = (convo.newMessage || '').trim();
     if (!text) return;
@@ -77,9 +80,10 @@ export class SupportChatComponent implements OnInit {
 
     this.chatService.sendMessage(convo.id, this.userId, text).subscribe({
       next: (resp: any) => {
-        const uiMsg: Message = {
+        const uiMsg: Messages_support = {
           senderId: resp.senderId,
           username: resp.username,
+          fullName: resp.fullName,
           conversationId: resp.conversationId,
           content: resp.content,
           timestamp: resp.createdAt ? new Date(resp.createdAt) : new Date()
@@ -90,13 +94,13 @@ export class SupportChatComponent implements OnInit {
       error: err => console.error('Erreur envoi message', err)
     });
   }
+
   resolveConversation(convo: Conversation) {
     // Déplacer la conversation des ouvertes vers les fermées
     this.openConversations = this.openConversations.filter(c => c.id !== convo.id);
     this.closedConversations.push(convo);
 
-    // Tu peux éventuellement appeler ton backend pour marquer la conversation comme résolue
+    // Appel backend optionnel pour marquer comme résolue
     // this.chatService.markConversationResolved(convo.id).subscribe();
   }
-
 }

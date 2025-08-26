@@ -11,7 +11,7 @@
 
         <div class="messages">
           <div *ngFor="let msg of convo.messages" class="message">
-            <strong>{{ msg.senderId }}:</strong> {{ msg.content }}
+            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
           </div>
         </div>
 
