@@ -1,18 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 import { Conversation } from '../../interfaces/conversation';
-import { ChatService } from '../../service/chat.service';
-import { AuthService } from '../../service/AuthService';
 import { Messages_support } from '../../interfaces/messages_support';
+import { AuthService } from '../../service/AuthService';
+import { ChatService } from '../../service/chat.service';
+import { WebSocketService } from '../../service/websocket.service';
 
 @Component({
   selector: 'app-support-chat',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, FormsModule, MatExpansionModule],
+  imports: [CommonModule, FormsModule, MatButtonModule, MatExpansionModule],
   templateUrl: './support-chat.component.html',
   styleUrls: ['./support-chat.component.scss']
 })
@@ -23,7 +24,8 @@ export class SupportChatComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private wsService: WebSocketService
   ) {}
 
   ngOnInit(): void {
@@ -33,7 +35,7 @@ export class SupportChatComponent implements OnInit {
       return;
     }
 
-    // Charger toutes les conversations et messages
+    // 1️⃣ Charger l'historique des messages via HTTP
     this.chatService.getSupportMessages().subscribe({
       next: (msgs: any[]) => {
         // 1️⃣ Grouper par conversationId
@@ -43,71 +45,71 @@ export class SupportChatComponent implements OnInit {
           if (!convoMap[msg.conversationId]) {
             convoMap[msg.conversationId] = {
               id: msg.conversationId,
-              user: msg.fullName, // affichage dans le titre
+              user: msg.fullName || 'Inconnu',
               createdAt: msg.timestamp ? new Date(msg.timestamp) : new Date(),
               messages: [],
               expanded: false
             };
           }
-
-          // Ajouter le message dans la conversation
-          convoMap[msg.conversationId].messages.push({
-            senderId: msg.senderId,
-            username: msg.username,
-            fullName: msg.fullName,
-            conversationId: msg.conversationId,
-            content: msg.content,
-            timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
-          } as Messages_support);
+          convoMap[msg.conversationId].messages.push(msg);
         });
 
-        // Séparer ouvert / fermé si statut existe
-        this.openConversations = Object.values(convoMap).filter(c => true); // pour l'instant tout ouvert
-        this.closedConversations = Object.values(convoMap).filter(c => false); // rien pour l'instant
+        this.openConversations = Object.values(convoMap);
+
+        // 2️⃣ Connexion WebSocket après avoir chargé les conversations
+        this.wsService.connect();
+
+        // S'abonner à chaque conversation existante
+        this.openConversations.forEach(c => this.wsService.subscribeToConversation(c.id));
       },
       error: err => console.error('Erreur récupération messages', err)
+    });
+
+    // 3️⃣ Écoute des messages entrants via WebSocket
+    this.wsService.messages$.subscribe((msg: Messages_support) => {
+      if (!msg || !msg.conversationId) return;
+
+      let convo = this.openConversations.find(c => c.id === msg.conversationId)
+        || this.closedConversations.find(c => c.id === msg.conversationId);
+
+      if (!convo) {
+        convo = {
+          id: msg.conversationId,
+          user: msg.fullName || 'Inconnu',
+          createdAt: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+          messages: [],
+          expanded: false
+        };
+        this.openConversations.push(convo);
+        this.wsService.subscribeToConversation(msg.conversationId);
+      }
+
+      convo.messages.push(msg);
     });
   }
 
   sendMessage(convo: Conversation) {
     const text = (convo.newMessage || '').trim();
-    if (!text) return;
+    if (!text || !this.userId) return;
 
-    if (!this.userId) {
-      console.error('Utilisateur non authentifié ou token invalide');
-      return;
-    }
+    // Envoi via WebSocket
+    this.wsService.sendMessage(convo.id, text, this.userId);
 
-    // 👇 Log des données envoyées
-    console.log('Envoi au backend:', {
+    // Mise à jour locale immédiate
+    convo.messages.push({
+      senderId: this.userId,
+      username: '',
+      fullName: '',
       conversationId: convo.id,
-      userId: this.userId,
-      content: text
+      content: text,
+      timestamp: new Date()
     });
 
-    this.chatService.sendMessageFromSupport(convo.id, this.userId, text).subscribe({
-      next: (resp: any) => {
-        const uiMsg: Messages_support = {
-          senderId: resp.senderId,
-          username: resp.username,
-          fullName: resp.fullName,
-          conversationId: resp.conversationId,
-          content: resp.content,
-          timestamp: resp.createdAt ? new Date(resp.createdAt) : new Date()
-        };
-        convo.messages.push(uiMsg);
-        convo.newMessage = '';
-      },
-      error: err => console.error('Erreur envoi message', err)
-    });
+    convo.newMessage = '';
   }
 
   resolveConversation(convo: Conversation) {
-    // Déplacer la conversation des ouvertes vers les fermées
     this.openConversations = this.openConversations.filter(c => c.id !== convo.id);
     this.closedConversations.push(convo);
-
-    // Appel backend optionnel pour marquer comme résolue
-    // this.chatService.markConversationResolved(convo.id).subscribe();
   }
 }
