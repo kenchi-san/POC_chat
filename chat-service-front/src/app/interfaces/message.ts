@@ -1,7 +1,8 @@
 export interface Message {
-  senderId: string;
-  username: string;
-  conversationId:string;
-  content: string;
-  timestamp: Date;
+  id: string;              // UUID
+  username: string;        // nom complet de l’expéditeur
+  conversationId: string;  // UUID conversation
+  senderId: string;        // UUID user
+  content: string;         // texte du message
+  createdAt: string;       // ISO date/heure (OffsetDateTime)
 }

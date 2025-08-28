@@ -9,11 +9,20 @@
           </mat-panel-title>
         </mat-expansion-panel-header>
 
-        <div class="messages">
-          <div *ngFor="let msg of convo.messages" class="message">
-            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+        <div class="messages"#scrollContainer>
+          <div
+            *ngFor="let msg of convo.messages"
+            class="message"
+            [ngClass]="{
+         'support-msg': msg.senderId === userId,
+         'client-msg': msg.senderId !== userId
+       }"
+          >
+            <strong>{{ msg.username }}:</strong> {{ msg.content }}
+            <div class="timestamp">{{ msg.createdAt | date: 'shortTime' }}</div>
           </div>
         </div>
+
 
         <div class="conversation-actions">
           <input [(ngModel)]="convo.newMessage" placeholder="Répondre..." />
@@ -40,7 +49,7 @@
 
         <div class="messages">
           <div *ngFor="let msg of convo.messages" class="message">
-            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+            <strong>{{ msg.username }}:</strong> {{ msg.content }}
           </div>
         </div>
       </mat-expansion-panel>

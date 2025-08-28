@@ -11,12 +11,12 @@
           *ngFor="let msg of messages"
           class="message"
           [ngClass]="{
-            'client-msg': msg?.senderId === userId,
-            'support-msg': msg?.senderId !== userId
+            'client-msg': msg.senderId === userId,
+            'support-msg': msg.senderId !== userId
           }"
         >
-          <strong>{{ msg?.username }}:</strong> {{ msg?.content }}
-          <div class="timestamp">{{ msg?.timestamp | date: 'shortTime' }}</div>
+          <strong>{{ msg.username }}:</strong> {{ msg.content }}
+          <div class="timestamp">{{ msg.createdAt | date: 'shortTime' }}</div>
         </div>
       </div>
     </mat-card-content>

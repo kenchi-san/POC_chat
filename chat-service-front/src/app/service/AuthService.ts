@@ -53,8 +53,10 @@ export class AuthService {
     if (!token) return null;
 
     const decoded: any = this.decodeToken(token);
-    return decoded?.sub || decoded?.id || null;
+    // utiliser le champ userId du token plutôt que sub ou id
+    return decoded?.userId || decoded?.sub || decoded?.id || null;
   }
+
 
 
   getDecodedToken(): any {

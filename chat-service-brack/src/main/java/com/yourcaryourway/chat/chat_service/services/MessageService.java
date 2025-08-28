@@ -12,11 +12,9 @@ import com.yourcaryourway.chat.chat_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -44,44 +42,91 @@ public class MessageService {
         this.redis = redis;
     }
 
+    /**
+     * Message d’un utilisateur "classique" (client)
+     */
     public MessageResponseDto createAndBroadcast(MessageRequestDto req) {
+        // 1️⃣ Vérifier la conversation
         Conversation conv = conversationRepo.findById(req.getConversationId())
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
+        // 2️⃣ Trouver l’expéditeur
+        User sender = userRepo.findByEmail(req.getSenderEmail())
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + req.getSenderEmail()));
+
+        // 3️⃣ Créer et sauvegarder le message
         ChatMessage message = new ChatMessage();
         message.setConversation(conv);
-        message.setSender(conv.getUser());
+        message.setSender(sender);
         message.setContent(req.getContent());
         message = messageRepo.save(message);
 
         OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
 
+        // 4️⃣ DTO de réponse
         MessageResponseDto dto = new MessageResponseDto(
                 message.getId(),
-                conv.getUser().getFullName(),
+                sender.getFullName(),
                 conv.getId(),
-                conv.getUser().getId(),
+                sender.getId(),
                 message.getContent(),
                 createdAt
         );
 
-        // WebSocket
+        // 5️⃣ Diffusion WebSocket
         broker.convertAndSend("/topic/conversations/" + conv.getId(), dto);
 
-        // Redis counter
+        // 6️⃣ Compteur Redis
         redis.opsForValue().increment("conv:" + conv.getId() + ":count");
 
         return dto;
     }
 
+    /**
+     * Message vu côté support
+     */
+    public MessageResponseSupportDto createAndBroadcastSupport(MessageRequestDto req) {
+        User sender = userRepo.findByEmail(req.getSenderEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur non trouvé : " + req.getSenderEmail()));
+
+        Conversation conv = conversationRepo.findById(req.getConversationId())
+                .orElseThrow(() -> new IllegalArgumentException("Conversation non trouvée : " + req.getConversationId()));
+
+        ChatMessage message = new ChatMessage();
+        message.setConversation(conv);
+        message.setSender(sender);
+        message.setContent(req.getContent());
+        message = messageRepo.save(message);
+
+        OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
+
+        MessageResponseSupportDto dto = new MessageResponseSupportDto(
+                message.getId(),
+                sender.getFullName(),
+                conv.getId(),
+                sender.getId(),
+                message.getContent(),
+                createdAt
+        );
+
+        // 👉 Ici tu peux soit envoyer sur la conversation, soit sur un canal global support
+        broker.convertAndSend("/topic/conversations/" + conv.getId(), dto);
+        broker.convertAndSend("/topic/support", dto); // facultatif si tu veux un flux support global
+
+        // Redis (optionnel, si tu veux aussi compter les messages côté support)
+        redis.opsForValue().increment("conv:" + conv.getId() + ":count");
+
+        return dto;
+    }
 
     @Transactional
     public List<MessageResponseDto> getActiveMessagesForUser(String username) {
         User user = userRepo.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
         UUID userId = user.getId();
-        List<ChatMessage> messages = messageRepo.findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(userId);
-        return messages.stream()
+
+        return messageRepo.findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(userId)
+                .stream()
                 .map(m -> new MessageResponseDto(
                         m.getId(),
                         m.getSender().getFullName(),
@@ -94,9 +139,8 @@ public class MessageService {
     }
 
     public List<MessageResponseSupportDto> getAllMessagesForSupport() {
-        List<ChatMessage> messages = messageRepo.findByConversationStatusTrueOrderByConversationIdAscCreatedAtAsc();
-
-        return messages.stream()
+        return messageRepo.findByConversationStatusTrueOrderByConversationIdAscCreatedAtAsc()
+                .stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -108,52 +152,7 @@ public class MessageService {
                 message.getConversation().getId(),
                 message.getSender().getId(),
                 message.getContent(),
-                message.getCreatedAt().atOffset(ZoneOffset.UTC) // conversion LocalDateTime -> OffsetDateTime
+                message.getCreatedAt().atOffset(ZoneOffset.UTC)
         );
     }
-
-
-    public MessageResponseSupportDto createAndBroadcastSupport(MessageRequestDto req) {
-        // 1️⃣ Récupérer l’utilisateur réel à partir de l’email envoyé par le front
-        User sender = userRepo.findByEmail(req.getSenderEmail())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Utilisateur non trouvé : " + req.getSenderEmail()));
-
-        // 2️⃣ Récupérer la conversation existante
-        Conversation conv = conversationRepo.findById(req.getConversationId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Conversation non trouvée : " + req.getConversationId()));
-
-        System.out.println("Utilisateur envoyé : " + sender + " | Conversation : " + conv);
-
-        // 3️⃣ Créer et sauvegarder le message
-        ChatMessage message = new ChatMessage();
-        message.setConversation(conv);
-        message.setSender(sender); // Le vrai utilisateur
-        message.setContent(req.getContent());
-        message = messageRepo.save(message);
-
-        // 4️⃣ Conversion du timestamp
-        OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
-
-        // 5️⃣ Créer le DTO pour le front
-        MessageResponseSupportDto dto = new MessageResponseSupportDto(
-                message.getId(),
-                sender.getFullName(),
-                conv.getId(),
-                sender.getId(),
-                message.getContent(),
-                createdAt
-        );
-
-        // 6️⃣ Diffusion WebSocket
-        broker.convertAndSend("/topic/conversations/" + conv.getId(), dto);
-
-        // 7️⃣ Incrémenter le compteur Redis
-        redis.opsForValue().increment("conv:" + conv.getId() + ":count");
-
-        return dto;
-    }
-
-
 }
