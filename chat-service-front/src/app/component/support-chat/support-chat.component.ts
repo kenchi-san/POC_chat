@@ -9,6 +9,7 @@ import { Message } from '../../interfaces/message';
 import { AuthService } from '../../service/AuthService';
 import { ChatService } from '../../service/chat.service';
 import { WebSocketService } from '../../service/websocket.service';
+import {Messages_support} from '../../interfaces/messages_support';
 
 @Component({
   selector: 'app-support-chat',
@@ -41,14 +42,14 @@ export class SupportChatComponent implements OnInit {
 
 
     this.chatService.getSupportMessages().subscribe({
-      next: (msgs: Message[]) => {
+      next: (msgs: Messages_support[]) => {
         const convoMap: { [key: string]: Conversation } = {};
 
         msgs.forEach(msg => {
           if (!convoMap[msg.conversationId]) {
             convoMap[msg.conversationId] = {
               id: msg.conversationId,
-              user: msg.username || 'Client',
+              user: msg.username || 'Support',
               createdAt: new Date(msg.createdAt),
               messages: [],
               expanded: false
@@ -65,7 +66,9 @@ export class SupportChatComponent implements OnInit {
       error: err => console.error('Erreur récupération messages support', err)
     });
 
-    this.wsService.messages$.subscribe((msg: Message) => {
+    this.wsService.messages$.subscribe((msg: Messages_support) => {
+      console.log('📩 Message reçu via WebSocket:', msg); // 🔹 console.log ici
+
       if (!msg || !msg.conversationId) return;
 
       let convo =
