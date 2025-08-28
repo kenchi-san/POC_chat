@@ -1,8 +1,8 @@
 export interface Messages_support {
-  senderId: string;
+  id: string;
   username: string;
-  fullName: string;
-  conversationId:string;
+  conversationId: string;
+  senderId: string;
   content: string;
-  timestamp: Date;
+  createdAt: string;
 }

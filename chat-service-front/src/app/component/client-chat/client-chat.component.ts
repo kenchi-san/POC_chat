@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { Message } from '../../interfaces/message';
 import { ChatService } from '../../service/chat.service';
 import { AuthService } from '../../service/AuthService';
+import { WebSocketService } from '../../service/websocket.service';
 
 @Component({
   selector: 'app-client-chat',
@@ -26,58 +27,65 @@ import { AuthService } from '../../service/AuthService';
 })
 export class ClientChatComponent implements OnInit {
   userId: string | null = null;
+  conversationId: string | null = null;
   messages: Message[] = [];
   newMessage = '';
-  conversationId: string | null = null;
 
   constructor(
     private chatService: ChatService,
-    private authService: AuthService
+    private authService: AuthService,
+    private wsService: WebSocketService
   ) {}
 
   ngOnInit(): void {
-    this.userId = this.authService.getUserIdFromToken(); // récupère directement depuis le JWT
+    this.userId = this.authService.getUserIdFromToken();
     if (!this.userId) {
       console.error('Utilisateur non authentifié ou token invalide');
       return;
     }
+
     this.loadMessages();
+    this.wsService.connect();
+
+    this.wsService.messages$.subscribe((msg: Message) => {
+      if (msg && msg.conversationId === this.conversationId) {
+        this.messages.push(msg);
+        this.scrollToBottom();
+      }
+    });
   }
 
   loadMessages(): void {
-    if (!this.userId) return;
-
     this.chatService.getMessagesForUser().subscribe({
       next: (msgs) => {
         this.messages = msgs;
         if (msgs.length > 0) {
           this.conversationId = msgs[0].conversationId;
+          this.wsService.subscribeToConversation(this.conversationId);
         }
+        this.scrollToBottom();
       },
       error: (err) => console.error('Erreur récupération messages', err),
     });
   }
 
-
   sendMessage(): void {
-    console.log(this.conversationId, this.userId, this.newMessage);
-
     if (!this.newMessage.trim() || !this.userId || !this.conversationId) return;
 
-    this.chatService
-      .sendMessage(this.conversationId, this.userId, this.newMessage)
-      .subscribe({
-        next: (msg: Message) => {
-          this.messages.push(msg);
-          this.newMessage = '';
-          this.scrollToBottom();
-        },
-        error: (err) => console.error('Erreur envoi message', err),
-      });
+    const decoded = this.authService.getDecodedToken();
+    const email = decoded?.email || decoded?.sub || 'inconnu';
+
+    this.wsService.sendClientMessage(
+      this.conversationId,
+      this.newMessage,
+      email
+    );
+
+    this.newMessage = '';
   }
 
 
-  scrollToBottom(): void {
+  private scrollToBottom(): void {
     setTimeout(() => {
       const container = document.querySelector('.messages');
       if (container) container.scrollTop = container.scrollHeight;

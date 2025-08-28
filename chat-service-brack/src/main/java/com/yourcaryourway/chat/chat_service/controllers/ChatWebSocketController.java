@@ -1,10 +1,10 @@
 package com.yourcaryourway.chat.chat_service.controllers;
 
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseSupportDto;
 import com.yourcaryourway.chat.chat_service.services.MessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 
@@ -17,9 +17,16 @@ public class ChatWebSocketController {
         this.messageService = messageService;
     }
 
-    @MessageMapping("/chat.sendMessage")
-    @SendTo("/topic/conversations/{conversationId}")
-    public MessageResponseSupportDto sendMessage(@Payload MessageRequestDto req) {
-        return messageService.createAndBroadcastSupport(req);
+    // Réception des messages clients et broadcast
+    @MessageMapping("/chat/send")
+    @SendTo("/topic/messages")
+    public MessageResponseDto handleMessage(MessageRequestDto request) {
+        return messageService.createAndBroadcast(request);
+    }
+
+    @MessageMapping("/chat/support")
+    @SendTo("/topic/support")
+    public MessageResponseSupportDto handleSupport(MessageRequestDto request) {
+        return messageService.createAndBroadcastSupport(request);
     }
 }

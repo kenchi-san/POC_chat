@@ -11,7 +11,7 @@
 
         <div class="messages">
           <div *ngFor="let msg of convo.messages" class="message">
-            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+            <strong>{{ msg.username }}:</strong> {{ msg.content }}
           </div>
         </div>
 
@@ -40,7 +40,7 @@
 
         <div class="messages">
           <div *ngFor="let msg of convo.messages" class="message">
-            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+            <strong>{{ msg.username }}:</strong> {{ msg.content }}
           </div>
         </div>
       </mat-expansion-panel>

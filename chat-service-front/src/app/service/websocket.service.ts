@@ -1,13 +1,13 @@
-import { Injectable } from '@angular/core';
-import { Client, Message } from '@stomp/stompjs';
-import { Subject } from 'rxjs';
-import { Messages_support } from '../interfaces/messages_support';
+import {Message} from '../interfaces/message';
+import {Client, IMessage} from '@stomp/stompjs';
+import {Injectable} from '@angular/core';
+import {Subject} from 'rxjs';
 import SockJS from 'sockjs-client';
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
   private client!: Client;
-  private messagesSubject = new Subject<Messages_support>();
+  private messagesSubject = new Subject<Message>();
   messages$ = this.messagesSubject.asObservable();
 
   connect() {
@@ -18,26 +18,39 @@ export class WebSocketService {
     });
 
     this.client.onConnect = () => {
-      console.log('WebSocket connecté');
+      console.log('✅ WebSocket connecté');
     };
 
     this.client.activate();
   }
 
   subscribeToConversation(conversationId: string) {
-    if (!this.client || !this.client.connected) return;
-
-    this.client.subscribe(`/topic/conversations/${conversationId}`, (msg: Message) => {
-      const messageData: Messages_support = JSON.parse(msg.body);
-      console.log('Message reçu via WS :', messageData); // 🔹 Important pour debug
-      this.messagesSubject.next(messageData);
-    });
+    this.client.onConnect = () => {
+      this.client.subscribe(`/topic/conversations/${conversationId}`, (msg: IMessage) => {
+        const data: Message = JSON.parse(msg.body);
+        this.messagesSubject.next(data);
+      });
+    };
   }
 
-  sendMessage(conversationId: string, content: string, senderEmail: string) {
-    if (!this.client || !this.client.connected) return;
+  subscribeToSupport() {
+    this.client.onConnect = () => {
+      this.client.subscribe('/topic/support', (msg: IMessage) => {
+        const data: Message = JSON.parse(msg.body);
+        this.messagesSubject.next(data);
+      });
+    };
+  }
 
+  sendClientMessage(conversationId: string, content: string, senderEmail: string) {
+    if (!this.client || !this.client.connected) return;
     const payload = { conversationId, content, senderEmail };
-    this.client.publish({ destination: '/app/chat.sendMessage', body: JSON.stringify(payload) });
+    this.client.publish({ destination: '/app/chat/send', body: JSON.stringify(payload) });
+  }
+
+  sendSupportMessage(conversationId: string, content: string, senderEmail: string) {
+    if (!this.client || !this.client.connected) return;
+    const payload = { conversationId, content, senderEmail };
+    this.client.publish({ destination: '/app/chat/support', body: JSON.stringify(payload) });
   }
 }
