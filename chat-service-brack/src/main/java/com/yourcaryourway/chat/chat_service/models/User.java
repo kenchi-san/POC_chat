@@ -33,6 +33,10 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 20)
     private String role;
 
+
+    public String getFullName(){
+        return username;
+    }
     @Override
     public String getUsername() {
         return email;

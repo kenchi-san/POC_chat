@@ -2,6 +2,7 @@ package com.yourcaryourway.chat.chat_service.services;
 
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageRequestDto;
 import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseDto;
+import com.yourcaryourway.chat.chat_service.dtos.user.MessageResponseSupportDto;
 import com.yourcaryourway.chat.chat_service.models.ChatMessage;
 import com.yourcaryourway.chat.chat_service.models.Conversation;
 import com.yourcaryourway.chat.chat_service.models.User;
@@ -9,15 +10,18 @@ import com.yourcaryourway.chat.chat_service.repository.ChatMessageRepository;
 import com.yourcaryourway.chat.chat_service.repository.ConversationRepository;
 import com.yourcaryourway.chat.chat_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
@@ -40,17 +44,13 @@ public class MessageService {
         this.redis = redis;
     }
 
-    @Transactional
     public MessageResponseDto createAndBroadcast(MessageRequestDto req) {
         Conversation conv = conversationRepo.findById(req.getConversationId())
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-        User sender = userRepo.findById(req.getSenderId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
         ChatMessage message = new ChatMessage();
         message.setConversation(conv);
-        message.setSender(sender);
+        message.setSender(conv.getUser());
         message.setContent(req.getContent());
         message = messageRepo.save(message);
 
@@ -58,8 +58,9 @@ public class MessageService {
 
         MessageResponseDto dto = new MessageResponseDto(
                 message.getId(),
+                conv.getUser().getFullName(),
                 conv.getId(),
-                sender.getId(),
+                conv.getUser().getId(),
                 message.getContent(),
                 createdAt
         );
@@ -73,30 +74,86 @@ public class MessageService {
         return dto;
     }
 
+
     @Transactional
-    public List<MessageResponseDto> getHistory(UUID conversationId, LocalDateTime after, int limit) {
-        Conversation conv = conversationRepo.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-
-        List<ChatMessage> messages;
-        if (after != null) {
-            messages = messageRepo.findByConversationAndCreatedAtAfterOrderByCreatedAtAsc(conv, after);
-        } else {
-            messages = messageRepo.findTop50ByConversationOrderByCreatedAtAsc(conv);
-        }
-
-        if (messages.size() > limit) {
-            messages = messages.subList(0, limit);
-        }
-
+    public List<MessageResponseDto> getActiveMessagesForUser(String username) {
+        User user = userRepo.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
+        UUID userId = user.getId();
+        List<ChatMessage> messages = messageRepo.findByConversationUserIdAndConversationStatusTrueOrderByCreatedAtAsc(userId);
         return messages.stream()
                 .map(m -> new MessageResponseDto(
                         m.getId(),
-                        conv.getId(),
+                        m.getSender().getFullName(),
+                        m.getConversation().getId(),
                         m.getSender().getId(),
                         m.getContent(),
                         m.getCreatedAt().atOffset(ZoneOffset.UTC)
                 ))
+                .collect(Collectors.toList());
+    }
+
+    public List<MessageResponseSupportDto> getAllMessagesForSupport() {
+        List<ChatMessage> messages = messageRepo.findByConversationStatusTrueOrderByConversationIdAscCreatedAtAsc();
+
+        return messages.stream()
+                .map(this::toDto)
                 .toList();
     }
+
+    private MessageResponseSupportDto toDto(ChatMessage message) {
+        return new MessageResponseSupportDto(
+                message.getId(),
+                message.getSender().getFullName(),
+                message.getConversation().getId(),
+                message.getSender().getId(),
+                message.getContent(),
+                message.getCreatedAt().atOffset(ZoneOffset.UTC) // conversion LocalDateTime -> OffsetDateTime
+        );
+    }
+
+
+    public MessageResponseSupportDto createAndBroadcastSupport(MessageRequestDto req) {
+        // 1️⃣ Récupérer l’utilisateur réel à partir de l’email envoyé par le front
+        User sender = userRepo.findByEmail(req.getSenderEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Utilisateur non trouvé : " + req.getSenderEmail()));
+
+        // 2️⃣ Récupérer la conversation existante
+        Conversation conv = conversationRepo.findById(req.getConversationId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Conversation non trouvée : " + req.getConversationId()));
+
+        System.out.println("Utilisateur envoyé : " + sender + " | Conversation : " + conv);
+
+        // 3️⃣ Créer et sauvegarder le message
+        ChatMessage message = new ChatMessage();
+        message.setConversation(conv);
+        message.setSender(sender); // Le vrai utilisateur
+        message.setContent(req.getContent());
+        message = messageRepo.save(message);
+
+        // 4️⃣ Conversion du timestamp
+        OffsetDateTime createdAt = message.getCreatedAt().atOffset(ZoneOffset.UTC);
+
+        // 5️⃣ Créer le DTO pour le front
+        MessageResponseSupportDto dto = new MessageResponseSupportDto(
+                message.getId(),
+                sender.getFullName(),
+                conv.getId(),
+                sender.getId(),
+                message.getContent(),
+                createdAt
+        );
+
+        // 6️⃣ Diffusion WebSocket
+        broker.convertAndSend("/topic/conversations/" + conv.getId(), dto);
+
+        // 7️⃣ Incrémenter le compteur Redis
+        redis.opsForValue().increment("conv:" + conv.getId() + ":count");
+
+        return dto;
+    }
+
+
 }

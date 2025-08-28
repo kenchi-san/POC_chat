@@ -1,2 +1,38 @@
-<h2>Espace Client</h2>
-<p>Bienvenue dans votre espace de chat client !</p>
+<div class="chat-container">
+  <mat-card class="chat-card">
+    <mat-card-header>
+      <mat-card-title>Espace Client</mat-card-title>
+      <mat-card-subtitle>Bienvenue dans votre espace de chat client !</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="messages" #scrollContainer>
+        <div
+          *ngFor="let msg of messages"
+          class="message"
+          [ngClass]="{
+            'client-msg': msg?.senderId === userId,
+            'support-msg': msg?.senderId !== userId
+          }"
+        >
+          <strong>{{ msg?.username }}:</strong> {{ msg?.content }}
+          <div class="timestamp">{{ msg?.timestamp | date: 'shortTime' }}</div>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="chat-input">
+      <mat-form-field class="chat-input-field" appearance="fill">
+        <input
+          matInput
+          placeholder="Écrire un message..."
+          [(ngModel)]="newMessage"
+          (keyup.enter)="sendMessage()"
+        />
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="sendMessage()">
+        Envoyer
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

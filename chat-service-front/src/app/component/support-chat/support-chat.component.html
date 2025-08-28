@@ -1,2 +1,49 @@
-<h2>Espace Support</h2>
-<p>Bienvenue dans l’espace support pour aider vos clients.</p>
+<div class="support-table">
+  <div class="ticket-column">
+    <h3>Tickets ouverts</h3>
+    <mat-accordion>
+      <mat-expansion-panel *ngFor="let convo of openConversations" [(expanded)]="convo.expanded">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            {{ convo.user }}
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="messages">
+          <div *ngFor="let msg of convo.messages" class="message">
+            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+          </div>
+        </div>
+
+        <div class="conversation-actions">
+          <input [(ngModel)]="convo.newMessage" placeholder="Répondre..." />
+          <button mat-raised-button color="primary" (click)="sendMessage(convo)">
+            Envoyer
+          </button>
+          <button mat-raised-button color="accent" (click)="resolveConversation(convo)">
+            Résolu
+          </button>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+
+  <div class="ticket-column">
+    <h3>Tickets fermés</h3>
+    <mat-accordion>
+      <mat-expansion-panel *ngFor="let convo of closedConversations">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            {{ convo.user }}
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="messages">
+          <div *ngFor="let msg of convo.messages" class="message">
+            <strong>{{ msg.fullName }}:</strong> {{ msg.content }}
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+</div>

@@ -20,6 +20,13 @@ public class Conversation {
     @JoinColumn(name = "ticket_id")
     private SupportTicket ticket;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(nullable = false)
+    private boolean status=true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }
