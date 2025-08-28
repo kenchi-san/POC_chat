@@ -1,5 +1,6 @@
 package com.yourcaryourway.chat.chat_service.services;
 
+import com.yourcaryourway.chat.chat_service.models.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -10,10 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
@@ -38,6 +36,9 @@ public class JwtService {
     // Génère un token avec le rôle automatiquement
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        if (userDetails instanceof User user) {
+            claims.put("userId", user.getId().toString());
+        }
         userDetails.getAuthorities().stream()
                 .findFirst()
                 .ifPresent(auth -> claims.put("role", auth.getAuthority()));

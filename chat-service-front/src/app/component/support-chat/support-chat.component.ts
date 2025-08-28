@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, ElementRef, OnInit, QueryList, ViewChild, ViewChildren} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,25 +24,27 @@ export class SupportChatComponent implements OnInit {
   userEmail: string | null = null;
   newMessage = '';
   conversationId: string | null = null;
-
+  userId: string | null = null;
   constructor(
     private authService: AuthService,
     private chatService: ChatService,
     private wsService: WebSocketService
   ) {}
+  @ViewChildren('scrollContainer') private scrollContainers!: QueryList<ElementRef>;
 
   ngOnInit(): void {
     const decoded = this.authService.getDecodedToken();
+    this.userId = decoded?.userId || null; // <-- UUID du support
     this.userEmail = decoded?.email || decoded?.sub || null;
 
-    if (!this.userEmail) {
-      console.error('Support non authentifié (token sans email/sub)');
+    if (!this.userId) {
+      console.error('Support non authentifié (token sans userId)');
       return;
     }
 
-
     this.chatService.getSupportMessages().subscribe({
       next: (msgs: Messages_support[]) => {
+        console.log('Messages reçus:', msgs); // 🔹 pour debugger
         const convoMap: { [key: string]: Conversation } = {};
 
         msgs.forEach(msg => {
@@ -67,8 +69,6 @@ export class SupportChatComponent implements OnInit {
     });
 
     this.wsService.messages$.subscribe((msg: Messages_support) => {
-      console.log('📩 Message reçu via WebSocket:', msg); // 🔹 console.log ici
-
       if (!msg || !msg.conversationId) return;
 
       let convo =
@@ -88,8 +88,10 @@ export class SupportChatComponent implements OnInit {
       }
 
       convo.messages.push(msg);
+      this.scrollToBottom(msg.conversationId);
     });
   }
+
 
   sendMessage(convo: Conversation): void {
     if (!convo.newMessage?.trim()) return;
@@ -101,11 +103,20 @@ export class SupportChatComponent implements OnInit {
 
     convo.newMessage = '';
   }
-
-
-
   resolveConversation(convo: Conversation): void {
     this.openConversations = this.openConversations.filter(c => c.id !== convo.id);
     this.closedConversations.push(convo);
+  }
+  private scrollToBottom(convoId: string): void {
+    setTimeout(() => {
+      const containerEl = this.scrollContainers.find((el, index) => {
+        const convo = this.openConversations[index];
+        return convo.id === convoId;
+      });
+
+      if (containerEl) {
+        containerEl.nativeElement.scrollTop = containerEl.nativeElement.scrollHeight;
+      }
+    }, 100);
   }
 }
